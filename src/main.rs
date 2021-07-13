@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Barrier};
+use std::sync::Arc;
 use threadpool::ThreadPool;
 
 lazy_static! {
@@ -32,20 +32,17 @@ fn main() {
     let jobs = urls.len();
     let workers = 8;
     let pool = ThreadPool::new(workers);
-    let barrier = Arc::new(Barrier::new(jobs + 1));
     std::env::set_current_dir(Path::new("./repos")).unwrap();
 
     for i in 0..jobs {
-        let barrier = barrier.clone();
         let urls = Arc::clone(&urls);
         pool.execute(move || {
             match Command::new("git").args(&["clone", &urls[i]]).spawn() {
                 Ok(_) => println!("Downloaded: {}", &urls[i]),
                 Err(e) => println!("Failed to download: {} for reason: {}", &urls[i], e),
             };
-            barrier.wait();
         })
     }
 
-    barrier.wait();
+    loop {}
 }
